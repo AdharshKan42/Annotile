@@ -36,8 +36,3 @@ Testing command:
 ```
 just test
 ```
-
-## Docs
-<hr>
-
-Build docs using `mkdocs serve` in the root of the repo.
