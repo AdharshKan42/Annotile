@@ -29,6 +29,7 @@ pydoclint = "^0.5.6"
 mypy = "^1.11.2"
 pre-commit = "^3.8.0"
 pytest = "^8.3.2"
+rust-just = "^1.39.0"
 
 [build-system]
 requires = ["poetry-core"]

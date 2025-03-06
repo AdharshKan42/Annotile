@@ -1,5 +1,5 @@
 # use PowerShell instead of sh:
-set shell := ["powershell.exe", "-c"]
+# set shell := ["powershell.exe", "-c"]
 
 description:
   @echo 'This file is used to run all automated commands in annotile!'
