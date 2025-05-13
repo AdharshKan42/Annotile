@@ -3,15 +3,29 @@ from typing import Tuple
 import numpy as np
 from PIL import Image
 
+
 class ImageTiler:
-    def __init__(self, overlap, tile_size, image_size, num_tiles):
+    def __init__(
+        self,
+        overlap,
+        tile_size,
+        image_size,
+        num_tiles,
+        image_path,
+        save_dir,
+        og_tile_size,
+    ):
         self.overlap = overlap
         self.tile_size = tile_size
         self.image_size = image_size
         self.num_tiles = num_tiles
+        self.image_path = image_path
+        self.save_dir = save_dir
+        self.og_tile_size = og_tile_size
 
-
-    def num_tiles_to_tile_sizes(self, num_tiles: Tuple[int, int], overlap: float) -> Tuple[int, int]:
+    def num_tiles_to_tile_sizes(
+        self, num_tiles: Tuple[int, int] = None, overlap: float = None
+    ) -> Tuple[int, int]:
         """
         Convert number of tiles to tile sizes.
 
@@ -21,11 +35,21 @@ class ImageTiler:
         Returns:
             Tuple[int, int]: Tile sizes in (tile_width, tile_height).
         """
+        num_tiles = num_tiles or self.num_tiles
+        overlap = overlap or self.overlap
+
         tile_width = self.image_size[0] // num_tiles[0]
         tile_height = self.image_size[1] // num_tiles[1]
         return int(tile_width * (1 + overlap)), int(tile_height * (1 + overlap))
 
-    def tile_image(self, image_path: Path, tile_size: Tuple[int, int], overlap: float, num_tiles: Tuple[int,int], og_tile_size: Tuple[int,int]) -> np.ndarray:
+    def tile_image(
+        self,
+        image_path: Path = None,
+        tile_size: Tuple[int, int] = None,
+        overlap: float = None,
+        num_tiles: Tuple[int, int] = None,
+        og_tile_size: Tuple[int, int] = None,
+    ) -> np.ndarray:
         """
         Splits an image into overlapping tiles using vectorized approach.
 
@@ -37,13 +61,18 @@ class ImageTiler:
         Returns:
             np.ndarray: Array of tiles (shape: (num_tiles, tile_height, tile_width, channels)).
         """
+        image_path = image_path or self.image_path
+        tile_size = tile_size or self.tile_size
+        overlap = overlap or self.overlap
+        num_tiles = num_tiles or self.num_tiles
+        og_tile_size = og_tile_size or self.og_tile_size
+
         tile_size = self.num_tiles_to_tile_sizes(num_tiles, overlap)
 
         # Load the image using PIL
         image = np.array(Image.open(image_path))
         img_height, img_width = image.shape[:2]
         tile_height, tile_width = tile_size
-
 
         # Calculate step size
         og_tile_height, og_tile_width = og_tile_size
@@ -55,14 +84,18 @@ class ImageTiler:
             raise ValueError("Tile size is larger than the image dimensions.")
 
         # Create sliding windows of shape (tile_height, tile_width, channels)
-        windows = np.lib.stride_tricks.sliding_window_view(image, (tile_height, tile_width, image.shape[2]))
+        windows = np.lib.stride_tricks.sliding_window_view(
+            image, (tile_height, tile_width, image.shape[2])
+        )
 
         # Apply step to subsample the sliding windows
         tiled = windows[::step_y, ::step_x, 0, :, :, :]
 
         # Reshape to flat array of tiles
         num_tiles_y, num_tiles_x = tiled.shape[:2]
-        tiles = tiled.reshape(num_tiles_y * num_tiles_x, tile_height, tile_width, image.shape[2])
+        tiles = tiled.reshape(
+            num_tiles_y * num_tiles_x, tile_height, tile_width, image.shape[2]
+        )
 
         return tiles
 
@@ -82,7 +115,13 @@ class ImageTiler:
             # Save the tile using PIL
             Image.fromarray(tile).save(tile_path)
 
-    def process_image(self, image_path: Path, save_dir: Path,  num_tiles: Tuple[int,int], og_tile_size: Tuple[int,int]):
+    def process_image(
+        self,
+        image_path: Path = None,
+        save_dir: Path = None,
+        num_tiles: Tuple[int, int] = None,
+        og_tile_size: Tuple[int, int] = None,
+    ):
         """
         Process the image: tile it and save the tiles.
 
@@ -90,16 +129,22 @@ class ImageTiler:
             image_path (Path): Path to the image.
             save_dir (Path): Directory to save the tiles.
         """
-        tiles = self.tile_image(image_path, self.tile_size, self.overlap, num_tiles, og_tile_size)
+        image_path = image_path or self.image_path
+        save_dir = save_dir or self.save_dir
+        num_tiles = num_tiles or self.num_tiles
+        og_tile_size = og_tile_size or self.og_tile_size
+
+        tiles = self.tile_image(
+            image_path, self.tile_size, self.overlap, num_tiles, og_tile_size
+        )
         self.save_tiles(tiles, save_dir)
 
     def save_metadata(self):
         """
         Save metadata about the tiling process.
         """
-        
+
         with open("metadata.txt", "w") as f:
             f.write(f"Tile Size: {self.tile_size}\n")
             f.write(f"Overlap Percentage: {self.overlap}\n")
             f.write(f"Image Size: {self.image_size}\n")
-

@@ -26,7 +26,6 @@ def get_yolo_annotation_paths(path: Path, ext: List[str] = [".txt"]) -> List[Pat
     ]
 
 
-# Store image and annotation paths
 class Dataloader(BaseModel):
     image_paths: List[Path]
     annotation_paths: List[Path]
@@ -35,6 +34,11 @@ class Dataloader(BaseModel):
     paired: List[Tuple[Path, Path]] = []
     unmatched_images: List[Path] = []
     unmatched_annotations: List[Path] = []
+    overlap: float = 0.2
+    tile_size: Tuple[int, int] = (512, 512)
+    image_size: Tuple[int, int] = (2048, 2048)
+    num_tiles: Tuple[int, int] = (4, 4)
+    og_tile_size: Tuple[int, int] = (512, 512)
 
     @model_validator(mode="after")
     def process_files(self):
@@ -46,13 +50,15 @@ class Dataloader(BaseModel):
         unmatched_annotations = []
 
         # Check the Set difference between the two sets
-        annotation_set = set(annotation_map.keys()) 
+        annotation_set = set(annotation_map.keys())
         image_set = set(image_map.keys())
-        
+
         # Annotations without corresponding images
         unmatched_annotation_stems = annotation_set - image_set
         if len(unmatched_annotation_stems) > 0:
-            unmatched_annotations = [annotation_map[stem] for stem in unmatched_annotation_stems]
+            unmatched_annotations = [
+                annotation_map[stem] for stem in unmatched_annotation_stems
+            ]
 
         # Images without corresponding annotations
         unmatched_image_stems = image_set - annotation_set

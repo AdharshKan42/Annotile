@@ -1,4 +1,8 @@
-from dataloader import Dataloader, get_yolo_annotation_paths,  get_yolo_image_paths
+from annotile.dataloader.dataloader import (
+    Dataloader,
+    get_yolo_annotation_paths,
+    get_yolo_image_paths,
+)
 from pathlib import Path
 
 # Create a path to tests/data
@@ -14,3 +18,5 @@ print("**" * 20)
 print(dataloader.unmatched_images)
 print("**" * 20)
 print(dataloader.unmatched_annotations)
+print("**" * 20)
+print(dataloader.model_dump())
