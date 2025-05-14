@@ -4,16 +4,16 @@
 description:
   @echo 'This file is used to run all automated commands in annotile!'
 
-format: black ruff pydoclint mypy
+format: ruff-check-fix ruff-format mypy
 
-black:
-    poetry run black annotile tests
+ruff-format:
+    poetry run ruff format annotile tests
 
-ruff:
+ruff-check:
     poetry run ruff check annotile tests
 
-pydoclint:
-    poetry run pydoclint
+ruff-check-fix:
+    poetry run ruff check annotile tests --fix
 
 mypy:
     poetry run mypy annotile tests

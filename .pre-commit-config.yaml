@@ -1,15 +1,32 @@
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=512000"]  # 500MB max file size
+      - id: check-merge-conflict  # always check for merge conflicts
+      - id: check-toml
+      - id: mixed-line-ending
+        args: ["--fix=lf"]  # unix style line endings
+      - id: trailing-whitespace
+
+  # YAML validation
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.37.0
+    hooks:
+      - id: yamllint
+
   - repo: local
     hooks:
-      - id: black
-        name: Run black through poetry
-        entry: poetry run black annotile tests
+      - id: ruff-check
+        name: Run ruff check through poetry
+        entry: poetry run ruff check annotile tests
         language: system
         types: [python]
 
-      - id: ruff
-        name: Run ruff through poetry
-        entry: poetry run ruff check annotile tests
+      - id: ruff-format
+        name: Run ruff format through poetry
+        entry: poetry run ruff format annotile tests
         language: system
         types: [python]
 
@@ -19,9 +36,3 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
-
-      - id: pydoclint
-        name: Run pydoclint through poetry
-        entry: poetry run pydoclint
-        language: system
-        types: [python]
