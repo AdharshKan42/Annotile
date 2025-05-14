@@ -12,6 +12,8 @@ python = "^3.11"
 numpy = "^2.1.0"
 pandas = "^2.2.2"
 pillow = "^10.4.0"
+pydantic = "^2.10.6"
+opencv-python = "^4.11.0.86"
 
 
 
@@ -29,6 +31,7 @@ pydoclint = "^0.5.6"
 mypy = "^1.11.2"
 pre-commit = "^3.8.0"
 pytest = "^8.3.2"
+rust-just = "^1.39.0"
 
 [build-system]
 requires = ["poetry-core"]
