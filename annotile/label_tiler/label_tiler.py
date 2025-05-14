@@ -1,9 +1,9 @@
 from pathlib import Path
 
 
-class ImageTiler:
+class LabelTiler:
     def __init__(self, overlap_pct, tile_size):
-        self.overlpap_pct = overlap_pct
+        self.overlap_pct = overlap_pct
         self.tile_size = tile_size
 
     def tile_label(self, image_path: Path):
