@@ -7,7 +7,23 @@ class LabelTiler:
         self.tile_size = tile_size
 
     def tile_label(self, image_path: Path):
+        """Stuff.
+
+        Args:
+            image_path: Stuff
+
+        Returns:
+            Stuff
+        """
         pass
 
     def save_tiles(self, save_dir: Path):
+        """Stuff.
+
+        Args:
+            save_dir: Stuff
+
+        Returns:
+            Stuff
+        """
         pass

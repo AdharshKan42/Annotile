@@ -1,9 +1,10 @@
+from pathlib import Path
+
 from annotile.dataloader.dataloader import (
     Dataloader,
     get_yolo_annotation_paths,
     get_yolo_image_paths,
 )
-from pathlib import Path
 
 # Create a path to tests/data
 data_path = (Path(__file__).parent / "../tests/data").resolve()
