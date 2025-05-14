@@ -17,7 +17,7 @@ This is a WIP, not all steps are covered.
 
 ```
 cd Annotile
-poetry install 
+poetry install
 ```
 
 ## Dev tools
@@ -25,7 +25,7 @@ poetry install
 
 Just is used for running formatting and testing jobs.
 
-Run `just --list` for a list of all relevant jobs. 
+Run `just --list` for a list of all relevant jobs.
 
 Formatting command:
 ```

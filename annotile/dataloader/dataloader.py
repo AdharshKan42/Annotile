@@ -1,47 +1,70 @@
 # Load Images and Annotations into memory
 from pathlib import Path
-from typing import List, Tuple
+from typing import Self
+
 from pydantic import BaseModel, model_validator
 
 
-# Read yolo images
-def get_yolo_image_paths(
-    path: Path, ext: List[str] = [".jpg", ".png", ".jpeg"]
-) -> List[Path]:
+def get_yolo_image_paths(path: Path, ext: list[str] | None = None) -> list[Path]:
+    """Grabs Pathlib Paths for images with YOLO formatting to be tiled.
+
+    Args:
+        path (Path): Path to directory containing potential YOLO images to be tiled
+        ext (list[str] | None): Valid image extensions for tiling use
+
+    Returns:
+        (list[Path]) list of Paths of valid YOLO images to be used for tiling.
+    """
+    if ext is None:
+        ext = [".jpg", ".png", ".jpeg"]
     if not path.is_dir():
         raise NotADirectoryError(f"{path} is not a directory.")
 
-    return [
-        file for file in path.iterdir() if file.suffix.lower() in ext and file.is_file()
-    ]
+    return [file for file in path.iterdir() if file.suffix.lower() in ext and file.is_file()]
 
 
-# Read yolo annotations
-def get_yolo_annotation_paths(path: Path, ext: List[str] = [".txt"]) -> List[Path]:
+def get_yolo_annotation_paths(path: Path, ext: list[str] | None = None) -> list[Path]:
+    """Grabs Pathlib Paths for labels with YOLO formatting to be tiled.
+
+    Args:
+        path (Path): Path to directory containing potential YOLO labels to be tiled
+        ext (list[str] | None): Valid label extensions for tiling use
+
+    Returns:
+        (list[Path]): list of Paths of valid YOLO labels to be used for tiling.
+    """
+    if ext is None:
+        ext = [".txt"]
     if not path.is_dir():
         raise NotADirectoryError(f"{path} is not a directory.")
 
-    return [
-        file for file in path.iterdir() if file.suffix.lower() in ext and file.is_file()
-    ]
+    return [file for file in path.iterdir() if file.suffix.lower() in ext and file.is_file()]
 
 
 class Dataloader(BaseModel):
-    image_paths: List[Path]
-    annotation_paths: List[Path]
+    image_paths: list[Path]
+    annotation_paths: list[Path]
 
     # These will be automatically filled after validation
-    paired: List[Tuple[Path, Path]] = []
-    unmatched_images: List[Path] = []
-    unmatched_annotations: List[Path] = []
+    paired: list[tuple[Path, Path]] = []
+    unmatched_images: list[Path] = []
+    unmatched_annotations: list[Path] = []
     overlap: float = 0.2
-    tile_size: Tuple[int, int] = (512, 512)
-    image_size: Tuple[int, int] = (2048, 2048)
-    num_tiles: Tuple[int, int] = (4, 4)
-    og_tile_size: Tuple[int, int] = (512, 512)
+    tile_size: tuple[int, int] = (512, 512)
+    image_size: tuple[int, int] = (2048, 2048)
+    num_tiles: tuple[int, int] = (4, 4)
+    og_tile_size: tuple[int, int] = (512, 512)
 
     @model_validator(mode="after")
-    def process_files(self):
+    def process_files(self) -> Self:
+        """Data validator that groups images and corresponding labels together.
+
+        Data validator that groups images and corresponding labels together.  for future
+        multi-processed tiling.
+
+        Returns:
+            (Self): Instance of Dataloader with validated data
+        """
         annotation_map = {ann.stem: ann for ann in self.annotation_paths}
         image_map = {img.stem: img for img in self.image_paths}
 
@@ -56,9 +79,7 @@ class Dataloader(BaseModel):
         # Annotations without corresponding images
         unmatched_annotation_stems = annotation_set - image_set
         if len(unmatched_annotation_stems) > 0:
-            unmatched_annotations = [
-                annotation_map[stem] for stem in unmatched_annotation_stems
-            ]
+            unmatched_annotations = [annotation_map[stem] for stem in unmatched_annotation_stems]
 
         # Images without corresponding annotations
         unmatched_image_stems = image_set - annotation_set

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Tuple
+
 import numpy as np
 from PIL import Image
 
@@ -24,13 +24,14 @@ class ImageTiler:
         self.og_tile_size = og_tile_size
 
     def num_tiles_to_tile_sizes(
-        self, num_tiles: Tuple[int, int] = None, overlap: float = None
-    ) -> Tuple[int, int]:
-        """
-        Convert number of tiles to tile sizes.
+        self, num_tiles: tuple[int, int] | None = None, overlap: float | None = None
+    ) -> tuple[int, int]:
+        """Convert number of tiles to tile sizes.
 
         Args:
-            num_tiles (Tuple[int, int]): Number of tiles in (width, height).
+            num_tiles (Tuple[int, int] | None): Number of tiles in (width, height).
+            overlap (float | None): Percent of overlap between tiles from 0.0 to 1.0.
+
 
         Returns:
             Tuple[int, int]: Tile sizes in (tile_width, tile_height).
@@ -44,19 +45,20 @@ class ImageTiler:
 
     def tile_image(
         self,
-        image_path: Path = None,
-        tile_size: Tuple[int, int] = None,
-        overlap: float = None,
-        num_tiles: Tuple[int, int] = None,
-        og_tile_size: Tuple[int, int] = None,
+        image_path: Path | None = None,
+        tile_size: tuple[int, int] | None = None,
+        overlap: float | None = None,
+        num_tiles: tuple[int, int] | None = None,
+        og_tile_size: tuple[int, int] | None = None,
     ) -> np.ndarray:
-        """
-        Splits an image into overlapping tiles using vectorized approach.
+        """Splits an image into overlapping tiles using vectorized approach.
 
         Args:
-            image_path (Path): Path to the image.
-            tile_size (Tuple[int, int]): (tile_width, tile_height).
-            overlap (float): Overlap fraction (0.0 to 1.0).
+            image_path (Path | None): Path to the image.
+            tile_size (Tuple[int, int] | None): (tile_width, tile_height).
+            overlap (float | None): Percent of overlap between tiles from 0.0 to 1.0.
+            num_tiles (tuple[int, int] | None): Number of tiles in (width, height).
+            og_tile_size (tuple[int, int] | None): Original (tile_width, tile_height).
 
         Returns:
             np.ndarray: Array of tiles (shape: (num_tiles, tile_height, tile_width, channels)).
@@ -93,15 +95,12 @@ class ImageTiler:
 
         # Reshape to flat array of tiles
         num_tiles_y, num_tiles_x = tiled.shape[:2]
-        tiles = tiled.reshape(
-            num_tiles_y * num_tiles_x, tile_height, tile_width, image.shape[2]
-        )
+        tiles = tiled.reshape(num_tiles_y * num_tiles_x, tile_height, tile_width, image.shape[2])
 
         return tiles
 
-    def save_tiles(self, tiles: np.ndarray, save_dir: Path):
-        """
-        Save the tiles to the specified directory.
+    def save_tiles(self, tiles: np.ndarray, save_dir: Path) -> None:
+        """Save the tiles to the specified directory.
 
         Args:
             tiles (np.ndarray): Array of tiles.
@@ -117,33 +116,30 @@ class ImageTiler:
 
     def process_image(
         self,
-        image_path: Path = None,
-        save_dir: Path = None,
-        num_tiles: Tuple[int, int] = None,
-        og_tile_size: Tuple[int, int] = None,
+        image_path: Path | None = None,
+        save_dir: Path | None = None,
+        num_tiles: tuple[int, int] | None = None,
+        og_tile_size: tuple[int, int] | None = None,
     ):
-        """
-        Process the image: tile it and save the tiles.
+        """Process the image: tile it and save the tiles.
 
         Args:
-            image_path (Path): Path to the image.
-            save_dir (Path): Directory to save the tiles.
+            image_path (Path | None): Path to the image.
+            save_dir (Path | None): Directory to save the tiles.
+            num_tiles (tuple[int, int] | None): Number of tiles in (width, height).
+            og_tile_size (tuple[int, int] | None): Original (tile_width, tile_height).
+
         """
         image_path = image_path or self.image_path
         save_dir = save_dir or self.save_dir
         num_tiles = num_tiles or self.num_tiles
         og_tile_size = og_tile_size or self.og_tile_size
 
-        tiles = self.tile_image(
-            image_path, self.tile_size, self.overlap, num_tiles, og_tile_size
-        )
+        tiles = self.tile_image(image_path, self.tile_size, self.overlap, num_tiles, og_tile_size)
         self.save_tiles(tiles, save_dir)
 
     def save_metadata(self):
-        """
-        Save metadata about the tiling process.
-        """
-
+        """Save metadata about the tiling process."""
         with open("metadata.txt", "w") as f:
             f.write(f"Tile Size: {self.tile_size}\n")
             f.write(f"Overlap Percentage: {self.overlap}\n")
