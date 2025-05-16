@@ -2,6 +2,14 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+from pydantic import BaseModel
+
+
+class Tile(BaseModel):
+    image_array: np.ndarray
+    position: tuple[int]
+    image_size: tuple[int]
+    overlap: float
 
 
 class ImageTiler:
@@ -11,9 +19,9 @@ class ImageTiler:
         tile_size,
         image_size,
         num_tiles,
-        image_path,
-        save_dir,
-        og_tile_size,
+        image_path=None,
+        save_dir=None,
+        og_tile_size=None,
     ):
         self.overlap = overlap
         self.tile_size = tile_size
@@ -86,18 +94,26 @@ class ImageTiler:
             raise ValueError("Tile size is larger than the image dimensions.")
 
         # Create sliding windows of shape (tile_height, tile_width, channels)
-        windows = np.lib.stride_tricks.sliding_window_view(
-            image, (tile_height, tile_width, image.shape[2])
-        )
+        windows = np.lib.stride_tricks.sliding_window_view(image, (tile_height, tile_width, image.shape[2]))
 
         # Apply step to subsample the sliding windows
         tiled = windows[::step_y, ::step_x, 0, :, :, :]
 
         # Reshape to flat array of tiles
         num_tiles_y, num_tiles_x = tiled.shape[:2]
-        tiles = tiled.reshape(num_tiles_y * num_tiles_x, tile_height, tile_width, image.shape[2])
+        output_tiles = []
 
-        return tiles
+        for y in range(num_tiles_y):
+            for x in range(num_tiles_x):
+                t = Tile()
+                t.image_array = tiled[y, x, :, :, :]
+                t.position = (y, x)
+                t.tile_size = tile_size
+                t.image_size = self.image_size
+                t.overlap = overlap
+                output_tiles.append(t)
+
+        return output_tiles
 
     def save_tiles(self, tiles: np.ndarray, save_dir: Path) -> None:
         """Save the tiles to the specified directory.
