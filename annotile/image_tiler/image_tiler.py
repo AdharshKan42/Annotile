@@ -2,14 +2,26 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
-from pydantic import BaseModel
+from typing import Self
+from pydantic import BaseModel, model_validator
+from shapely import Polygon
 
 
 class Tile(BaseModel):
     image_array: np.ndarray
     position: tuple[int]
+    # Top left coords of tile relative to image
+    position_in_image: tuple[int]
+    tile_size: tuple[int]
     image_size: tuple[int]
     overlap: float
+    polygon: Polygon | None = None
+
+    @model_validator(mode="after")
+    def create_polygon(self) -> Self:
+        self.polygon = Polygon([(self.position_in_image[0], self.position_in_image[1]), (self.position_in_image[0], self.position_in_image[1] + self.tile_size[1]),  (self.position_in_image[0] + self.tile_size[0], self.position_in_image[1]),
+                                (self.position_in_image[0] + self.tile_size[0], self.position_in_image[1] + self.tile_size[1])])
+        return self
 
 
 class ImageTiler:
@@ -58,7 +70,7 @@ class ImageTiler:
         overlap: float | None = None,
         num_tiles: tuple[int, int] | None = None,
         og_tile_size: tuple[int, int] | None = None,
-    ) -> np.ndarray:
+    ) -> list[Tile]:
         """Splits an image into overlapping tiles using vectorized approach.
 
         Args:
@@ -108,6 +120,7 @@ class ImageTiler:
                 t = Tile()
                 t.image_array = tiled[y, x, :, :, :]
                 t.position = (y, x)
+                t.position_xy = (y * step_y, x * step_x)
                 t.tile_size = tile_size
                 t.image_size = self.image_size
                 t.overlap = overlap
