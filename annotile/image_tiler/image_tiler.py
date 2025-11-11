@@ -1,27 +1,69 @@
+import hashlib
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
-from typing import Self
 from pydantic import BaseModel, model_validator
 from shapely import Polygon
 
 
 class Tile(BaseModel):
     image_array: np.ndarray
-    position: tuple[int]
+    position: tuple[int, int]
     # Top left coords of tile relative to image
-    position_in_image: tuple[int]
-    tile_size: tuple[int]
-    image_size: tuple[int]
+    position_in_image: tuple[int, int]
+    tile_size: tuple[int, int]
+    image_size: tuple[int, int]
     overlap: float
+    image_path: Path | None = None
     polygon: Polygon | None = None
 
+    model_config = {"arbitrary_types_allowed": True}
+
     @model_validator(mode="after")
-    def create_polygon(self) -> Self:
-        self.polygon = Polygon([(self.position_in_image[0], self.position_in_image[1]), (self.position_in_image[0], self.position_in_image[1] + self.tile_size[1]),  (self.position_in_image[0] + self.tile_size[0], self.position_in_image[1]),
-                                (self.position_in_image[0] + self.tile_size[0], self.position_in_image[1] + self.tile_size[1])])
+    def create_polygon(self) -> "Tile":
+        self.polygon = Polygon(
+            [
+                (self.position_in_image[0], self.position_in_image[1]),
+                (self.position_in_image[0], self.position_in_image[1] + self.tile_size[1]),
+                (self.position_in_image[0] + self.tile_size[0], self.position_in_image[1]),
+                (self.position_in_image[0] + self.tile_size[0], self.position_in_image[1] + self.tile_size[1]),
+            ]
+        )
         return self
+
+    def _image_digest(self) -> int:
+        """Return a small integer digest for the image content (fast to compare & include in hash)."""
+        # ensure contiguous bytes
+        arr = np.ascontiguousarray(self.image_array)
+        # use first 8 bytes of sha256 for a compact stable int
+        digest = hashlib.sha256(arr.tobytes()).digest()[:8]
+        return int.from_bytes(digest, "big")
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Tile):
+            return NotImplemented
+        return (
+            self.position == other.position
+            and self.position_in_image == other.position_in_image
+            and self.tile_size == other.tile_size
+            and self.image_size == other.image_size
+            and float(self.overlap) == float(other.overlap)
+            and self._image_digest() == other._image_digest()
+        )
+
+    def __hash__(self) -> int:
+        # combine metadata and image digest into a stable hashable tuple
+        return hash(
+            (
+                self.position,
+                self.position_in_image,
+                self.tile_size,
+                self.image_size,
+                round(float(self.overlap), 6),
+                self._image_digest(),
+            )
+        )
 
 
 class ImageTiler:
@@ -117,13 +159,18 @@ class ImageTiler:
 
         for y in range(num_tiles_y):
             for x in range(num_tiles_x):
-                t = Tile()
-                t.image_array = tiled[y, x, :, :, :]
-                t.position = (y, x)
-                t.position_xy = (y * step_y, x * step_x)
-                t.tile_size = tile_size
-                t.image_size = self.image_size
-                t.overlap = overlap
+                img_arr = tiled[y, x, :, :, :]
+                pos = (y, x)
+                pos_in_image = (y * step_y, x * step_x)
+                t = Tile(
+                    image_array=img_arr,
+                    position=pos,
+                    position_in_image=pos_in_image,
+                    tile_size=tile_size,
+                    image_size=self.image_size,
+                    overlap=overlap,
+                    image_path=image_path,
+                )
                 output_tiles.append(t)
 
         return output_tiles
