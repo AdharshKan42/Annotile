@@ -2,13 +2,15 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Self
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, ConfigDict
 from shapely import Polygon
 
 from annotile.image_tiler.image_tiler import Tile
 
 
 class Label(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     object_class: int
     x: int
     y: int
@@ -22,6 +24,7 @@ class Label(BaseModel):
     y_1: int = 0
     x_2: int = 0
     y_2: int = 0
+    # MIGHT lose validation on Shapley Polygon and can't seralize, TODO fix
     polygon: Polygon | None = None
 
     @model_validator(mode="after")
@@ -115,7 +118,7 @@ class LabelTiler:
         """Save tile labels to disk.
 
         Args:
-            save_dir: Stuff
+            save_dir: Directory to save the tiles, generated if it doesn't exist.
 
         Returns:
             Stuff

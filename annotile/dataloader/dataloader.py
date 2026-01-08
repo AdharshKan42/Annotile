@@ -49,6 +49,7 @@ class Dataloader(BaseModel):
     paired: list[tuple[Path, Path]] = []
     unmatched_images: list[Path] = []
     unmatched_annotations: list[Path] = []
+
     overlap: float = 0.2
     tile_size: tuple[int, int] = (512, 512)
     image_size: tuple[int, int] = (2048, 2048)
@@ -59,7 +60,7 @@ class Dataloader(BaseModel):
     def process_files(self) -> Self:
         """Data validator that groups images and corresponding labels together.
 
-        Data validator that groups images and corresponding labels together.  for future
+        Data validator that groups images and corresponding labels together for future
         multi-processed tiling.
 
         Returns:

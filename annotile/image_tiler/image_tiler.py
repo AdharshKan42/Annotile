@@ -77,6 +77,17 @@ class ImageTiler:
         save_dir=None,
         og_tile_size=None,
     ):
+        """_summary_
+
+        Args:
+            overlap (_type_): _description_
+            tile_size (_type_): _description_
+            image_size (_type_): _description_
+            num_tiles (_type_): _description_
+            image_path (_type_, optional): _description_. Defaults to None.
+            save_dir (_type_, optional): _description_. Defaults to None.
+            og_tile_size (_type_, optional): _description_. Defaults to None.
+        """
         self.overlap = overlap
         self.tile_size = tile_size
         self.image_size = image_size
@@ -180,7 +191,7 @@ class ImageTiler:
 
         Args:
             tiles (np.ndarray): Array of tiles.
-            save_dir (Path): Directory to save the tiles.
+            save_dir (Path): Directory to save the tiles. Generated if it doesn't exist.
         """
         if not save_dir.exists():
             save_dir.mkdir(parents=True, exist_ok=True)
