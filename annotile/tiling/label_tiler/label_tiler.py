@@ -2,10 +2,11 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Self
 
-from pydantic import BaseModel, model_validator, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 from shapely import Polygon
 
-from annotile.image_tiler.image_tiler import Tile
+from annotile.tiling.image_tiler.image_tiler import Tile
+from annotile.tiling.label_tiler.dto import LabelTilerConfig
 
 
 class Label(BaseModel):
@@ -38,34 +39,29 @@ class Label(BaseModel):
 
 
 class LabelTiler:
-    def __init__(
-        self,
-        overlap,
-        tile_size,
-        image_size,
-        num_tiles,
-        label_path=None,
-        save_dir=None,
-        og_tile_size=None,
-    ):
-        self.overlap = overlap
-        self.tile_size = tile_size
-        self.image_size = image_size
-        self.num_tiles = num_tiles
-        self.label_path = label_path
-        self.save_dir = save_dir
-        self.og_tile_size = og_tile_size
+    """Tiles labels using configuration DTO.
+    
+    Receives validated parameters from ImageTiler.
+    """
 
-    def tile_labels(self, label_path: Path, tiles: list[Tile]):
-        """Stuff.
+    def __init__(self, config: LabelTilerConfig):
+        """Initialize LabelTiler with configuration DTO.
 
         Args:
-            image_path: Stuff
+            config: LabelTilerConfig containing all required parameters.
+        """
+        self.config = config
+
+    def tile_labels(self, tiles: list[Tile]) -> dict[Tile, list[Label]]:
+        """Tile labels based on image tiles.
+
+        Args:
+            tiles: List of Tile objects from ImageTiler.
 
         Returns:
-            Stuff
+            Dictionary mapping each tile to its labels.
         """
-        labels = self.read_labels(label_path)
+        labels = self.read_labels()
 
         tiles_to_labels: defaultdict[Tile, list[Label]] = defaultdict(list)
 
@@ -79,8 +75,8 @@ class LabelTiler:
                     minx, miny, maxx, maxy = l_clipped.bounds
                     label_in_tile = Label(
                         object_class=label.object_class,
-                        x=((minx + maxx) / 2 - tile.x_1) / tile.tile_size[0],
-                        y=((miny + maxy) / 2 - tile.y_1) / tile.tile_size[1],
+                        x=((minx + maxx) / 2 - tile.position_in_image[0]) / tile.tile_size[0],
+                        y=((miny + maxy) / 2 - tile.position_in_image[1]) / tile.tile_size[1],
                         width=(maxx - minx) / tile.tile_size[0],
                         height=(maxy - miny) / tile.tile_size[1],
                         image_width=tile.tile_size[0],
@@ -89,43 +85,60 @@ class LabelTiler:
                     tile_labels.append(label_in_tile)
             tiles_to_labels[tile] = tile_labels
 
-        return tiles_to_labels
+        return dict(tiles_to_labels)
 
     def label_in_tile(self, tile: Tile, label: Label) -> bool:
         return label.polygon.intersects(tile.polygon)
 
-    def read_labels(self, label_path: Path) -> list[Label]:
-        with open(label_path) as f:
+    def read_labels(self) -> list[Label]:
+        """Read labels from the configured label path.
+        
+        Returns:
+            List of Label objects.
+        """
+        with open(self.config.label_path) as f:
             labels = []
             for line in f:
                 label = line.strip().split()
                 if len(label) == 5:
-                    object_class, x, y, width, height = map(int, label)
+                    object_class, x, y, width, height = map(float, label)
                     labels.append(
                         Label(
-                            object_class=object_class,
+                            object_class=int(object_class),
                             x=x,
                             y=y,
                             width=width,
                             height=height,
-                            image_width=self.image_size[0],
-                            image_height=self.image_size[1],
+                            image_width=self.config.image_size[0],
+                            image_height=self.config.image_size[1],
                         )
                     )
         return labels
 
-    def save_tiles(self, tiles_to_labels: dict[Tile, list[Label]], save_dir: Path):
+    def save_tiles(self, tiles_to_labels: dict[Tile, list[Label]]) -> None:
         """Save tile labels to disk.
 
         Args:
-            save_dir: Directory to save the tiles, generated if it doesn't exist.
-
-        Returns:
-            Stuff
+            tiles_to_labels: Dictionary mapping tiles to their labels.
         """
+        save_dir = self.config.save_dir
         save_dir.mkdir(parents=True, exist_ok=True)
+        
         for tile, labels in tiles_to_labels.items():
             tile_label_path = save_dir / f"{tile.image_path.stem}_{tile.position_in_image}.txt"
             with open(tile_label_path, "w") as f:
                 for label in labels:
                     f.write(f"{label.object_class} {label.x} {label.y} {label.width} {label.height}\n")
+
+    def process(self, tiles: list[Tile]) -> dict[Tile, list[Label]]:
+        """Process labels: tile them and save.
+        
+        Args:
+            tiles: List of Tile objects from ImageTiler.
+            
+        Returns:
+            Dictionary mapping tiles to labels.
+        """
+        tiles_to_labels = self.tile_labels(tiles)
+        self.save_tiles(tiles_to_labels)
+        return tiles_to_labels
